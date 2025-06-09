@@ -32,4 +32,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ reply: "Server error occurred." });
   }
 }
-
