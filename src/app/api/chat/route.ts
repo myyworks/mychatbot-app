@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         model: 'gpt-4o',
-        messages: [{ role: 'user', content: message }],
+    A    messages: [{ role: 'user', content: message }],
         max_tokens: 300,
       }),
     });
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     const reply = data?.choices?.[0]?.message?.content || 'No reply received.';
     return NextResponse.json({ reply });
 
-  } catch (err: any) {
+  } catch (err) {
     console.error("🔴 Server error:", err.message || err);
     return NextResponse.json({ reply: "Server error occurred." });
   }
