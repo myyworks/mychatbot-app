@@ -1,4 +1,6 @@
-mport { NextResponse } from 'next/server';
+// src/app/api/chat/route.ts
+
+import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import OpenAI from 'openai';
 
@@ -45,12 +47,13 @@ ${business.faq_md || ''}
       messages,
     });
 
-    const reply = chat.choices?.[0]?.message?.content || 'No reply received.';
+    const reply = chat.choices[0]?.message?.content || 'No reply received.';
     return NextResponse.json({ reply });
 
-  } catch (err: any) {
-    console.error("Server error:", err.message);
-    return NextResponse.json({ reply: 'Server error occurred.' });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("🔴 Server error:", message);
+    return NextResponse.json({ reply: "Server error occurred." });
   }
 }
 
