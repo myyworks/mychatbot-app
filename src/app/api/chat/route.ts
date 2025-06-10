@@ -1,42 +1,56 @@
-import { NextRequest, NextResponse } from 'next/server';
+mport { NextResponse } from 'next/server';
+import { supabase } from '@/lib/supabase';
+import OpenAI from 'openai';
 
-export async function POST(req: NextRequest) {
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+export async function POST(request: Request) {
   try {
-    const { message } = await req.json();
+    const body = await request.json() as { message: string };
+    const slug: string = request.nextUrl.searchParams.get('slug') || 'home';
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'user',
-            content: message,
-          },
-        ],
-        max_tokens: 300,
-      }),
-    });
+    const { data: business, error } = await supabase
+      .from('businesses')
+      .select('name, faq_md, about_text')
+      .eq('slug', slug)
+      .single();
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("🔴 OpenAI API error:", data);
-      return NextResponse.json({
-        reply: `OpenAI error: ${data.error?.message || 'Unknown error'}`,
-      });
+    if (error || !business) {
+      return NextResponse.json({ reply: 'Sorry, we could not find this business.' });
     }
 
-    const reply = data?.choices?.[0]?.message?.content || 'No reply received.';
+    const messages = [
+      {
+        role: 'system',
+        content: `
+You are a helpful assistant for "${business.name}".
+
+About the business:
+${business.about_text || ''}
+
+FAQ:
+${business.faq_md || ''}
+        `.trim(),
+      },
+      {
+        role: 'user',
+        content: body.message,
+      },
+    ];
+
+    const chat = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages,
+    });
+
+    const reply = chat.choices?.[0]?.message?.content || 'No reply received.';
     return NextResponse.json({ reply });
 
-  } catch (err) {
-    console.error("🔴 Server error:", (err as Error).message || err);
-    return NextResponse.json({ reply: "Server error occurred." });
+  } catch (err: any) {
+    console.error("Server error:", err.message);
+    return NextResponse.json({ reply: 'Server error occurred.' });
   }
 }
 
